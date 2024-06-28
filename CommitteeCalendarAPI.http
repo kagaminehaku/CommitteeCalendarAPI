@@ -1,0 +1,6 @@
+@CommitteeCalendarAPI_HostAddress = http://localhost:5019
+
+GET {{CommitteeCalendarAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
