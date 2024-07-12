@@ -29,12 +29,12 @@ namespace CommitteeCalendarAPI.Controllers
             _configuration = configuration;
         }
 
-        //// GET: api/UserAccounts
-        //[HttpGet]
-        //public async Task<ActionResult<IEnumerable<UserAccount>>> GetUserAccounts()
-        //{
-        //    return await _context.UserAccounts.ToListAsync();
-        //}
+        // GET: api/UserAccounts
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<UserAccount>>> GetUserAccounts()
+        {
+            return await _context.UserAccounts.ToListAsync();
+        }
 
         //// GET: api/UserAccounts/5
         //[HttpGet("{id}")]
@@ -85,7 +85,7 @@ namespace CommitteeCalendarAPI.Controllers
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [AllowAnonymous]
         [HttpPost("Register")]
-        public async Task<ActionResult<UserAccount>> PostUserAccoun(UserAccount userAccount)
+        public async Task<ActionResult<UserAccount>> PostUserAccount(UserAccount userAccount)
         {
             _context.UserAccounts.Add(userAccount);
             await _context.SaveChangesAsync();
@@ -135,8 +135,8 @@ namespace CommitteeCalendarAPI.Controllers
                 {
                     new Claim(ClaimTypes.Name, user.Id.ToString())
                 }),
-                //Expires = DateTime.UtcNow.AddDays(7),
-                Expires = DateTime.UtcNow.AddSeconds(15),
+                Expires = DateTime.UtcNow.AddDays(7),
+                //Expires = DateTime.UtcNow.AddSeconds(15),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
             var token = tokenHandler.CreateToken(tokenDescriptor);
