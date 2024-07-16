@@ -23,32 +23,68 @@ namespace CommitteeCalendarAPI.Controllers
             _context = context;
         }
 
-        // GET: api/Events
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<Event>>> GetEvents()
-        {
-            return await _context.Events.ToListAsync();
-        }
+        //// GET: api/Events
+        //[HttpGet]
+        //public async Task<ActionResult<IEnumerable<Event>>> GetEvents()
+        //{
+        //    return await _context.Events.ToListAsync();
+        //}
 
         // GET: api/Events/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Event>> GetEvent(Guid id)
         {
-            var @event = await _context.Events.FindAsync(id);
+            var userId = User.FindFirstValue(ClaimTypes.Name);
+
+            if (userId == null)
+            {
+                return Content("Unauthorized: Not logged in yet or token invalid.");
+            }
+
+            var user = await _context.UserAccounts.Include(u => u.Participants)
+                                                  .FirstOrDefaultAsync(u => u.Id.ToString() == userId);
+
+            if (user == null)
+            {
+                return Content("Error: Your account is not bound to any participant.");
+            }
+
+            if (user.ParticipantsId == null)
+            {
+                return Content("Error: You have no associated participant.");
+            }
+
+            var participantId = user.ParticipantsId.Value;
+
+            var @event = await _context.Events.Include(e => e.EventsParticipants)
+                                              .FirstOrDefaultAsync(e => e.EventId == id);
 
             if (@event == null)
             {
-                return NotFound();
+                return Content("Error: Event not found.");
             }
 
-            return @event;
+            if (!@event.EventsParticipants.Any(ep => ep.ParticipantsId == participantId))
+            {
+                return Content("Error: You are not a participant in this event.");
+            }
+
+            return Ok(@event);
         }
 
+
         // PUT: api/Events/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
         public async Task<IActionResult> PutEvent(Guid id, Event @event)
         {
+            var userId = User.FindFirstValue(ClaimTypes.Name);
+            var user = await _context.UserAccounts.FirstOrDefaultAsync(u => u.Id.ToString() == userId);
+
+            if (user == null || !user.Adminpermission)
+            {
+                return Content("Error: Only admin users can update events.");
+            }
+
             if (id != @event.EventId)
             {
                 return BadRequest();
@@ -76,10 +112,17 @@ namespace CommitteeCalendarAPI.Controllers
         }
 
         // POST: api/Events
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
         public async Task<ActionResult<Event>> PostEvent(Event @event)
         {
+            var userId = User.FindFirstValue(ClaimTypes.Name);
+            var user = await _context.UserAccounts.FirstOrDefaultAsync(u => u.Id.ToString() == userId);
+
+            if (user == null || !user.Adminpermission)
+            {
+                return Content("Error: Only admin users can create events.");
+            }
+
             _context.Events.Add(@event);
             try
             {
@@ -104,6 +147,14 @@ namespace CommitteeCalendarAPI.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteEvent(Guid id)
         {
+            var userId = User.FindFirstValue(ClaimTypes.Name);
+            var user = await _context.UserAccounts.FirstOrDefaultAsync(u => u.Id.ToString() == userId);
+
+            if (user == null || !user.Adminpermission)
+            {
+                return Content("Error: Only admin users can delete events.");
+            }
+
             var @event = await _context.Events.FindAsync(id);
             if (@event == null)
             {
@@ -121,16 +172,13 @@ namespace CommitteeCalendarAPI.Controllers
             return _context.Events.Any(e => e.EventId == id);
         }
 
-        [HttpGet("MyEvents")]
+        [HttpGet("GetMyEvents")]
         public async Task<ActionResult<IEnumerable<Event>>> GetMyEvents()
         {
             var userId = User.FindFirstValue(ClaimTypes.Name);
-            //var userId = "7a996d69-1f48-4a70-857d-b2f48e37f17e";
 
             if (userId == null)
             {
-                //return Unauthorized();
-                //return NotFound("ok run");
                 return Content("Unauthorized: Not logged in yet or token invalid.");
             }
 
@@ -138,26 +186,32 @@ namespace CommitteeCalendarAPI.Controllers
 
             if (user == null)
             {
-                //return NotFound("User not associated with any participant");
-                //return Unauthorized("LMAO");
                 return Content("Error: Your account not binding yet.");
             }
 
-            if (user.ParticipantsId == null)
+            if (user.Adminpermission)
             {
-                //return NotFound("User not associated with any participant");
-                //return Unauthorized("LMAO");
-                return Content("Success: You have no events.");
+                // Return all events if the user has admin permissions
+                var allEvents = await _context.Events.ToListAsync();
+                return Ok(allEvents);
             }
+            else
+            {
+                if (user.ParticipantsId == null)
+                {
+                    return Content("Success: You have no events.");
+                }
 
-            var participantId = user.ParticipantsId.Value;
+                var participantId = user.ParticipantsId.Value;
 
-            var events = await _context.Events
-                .Include(e => e.EventsParticipants)
-                .Where(e => e.EventsParticipants.Any(ep => ep.ParticipantsId == participantId))
-                .ToListAsync();
+                // Return events that the user has joined
+                var events = await _context.Events
+                    .Include(e => e.EventsParticipants)
+                    .Where(e => e.EventsParticipants.Any(ep => ep.ParticipantsId == participantId))
+                    .ToListAsync();
 
-            return events;
+                return Ok(events);
+            }
         }
     }
 }
