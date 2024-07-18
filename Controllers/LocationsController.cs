@@ -6,6 +6,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using CommitteeCalendarAPI.Models;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
+using CommitteeCalendarAPI.ActionModels;
 
 namespace CommitteeCalendarAPI.Controllers
 {
@@ -42,10 +45,15 @@ namespace CommitteeCalendarAPI.Controllers
         }
 
         // PUT: api/Locations/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
         public async Task<IActionResult> PutLocation(Guid id, Location location)
         {
+            var userId = User.FindFirstValue(ClaimTypes.Name);
+            if (!IsUserAdmin(userId))
+            {
+                return Content("Unauthorized: Admin permission required.");
+            }
+
             if (id != location.LocationId)
             {
                 return BadRequest();
@@ -73,10 +81,24 @@ namespace CommitteeCalendarAPI.Controllers
         }
 
         // POST: api/Locations
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Location>> PostLocation(Location location)
+        [AllowAnonymous]
+        public async Task<ActionResult<Location>> PostLocation(LocationsMinimal locationMinimal)
         {
+            var userId = User.FindFirstValue(ClaimTypes.Name);
+            if (!IsUserAdmin(userId))
+            {
+                return Content("Unauthorized: Admin permission required.");
+            }
+            var location = new Location
+            {
+                LocationId = Guid.NewGuid(), // Generate a new GUID for LocationId
+                LocationName = locationMinimal.LocationName,
+                LocationAddress = locationMinimal.LocationAddress,
+                LocationInfo = locationMinimal.LocationInfo,
+                LocationContact = locationMinimal.LocationContact,
+            };
+
             _context.Locations.Add(location);
             try
             {
@@ -94,13 +116,19 @@ namespace CommitteeCalendarAPI.Controllers
                 }
             }
 
-            return CreatedAtAction("GetLocation", new { id = location.LocationId }, location);
+            return Content("Ok");
         }
 
         // DELETE: api/Locations/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteLocation(Guid id)
         {
+            var userId = User.FindFirstValue(ClaimTypes.Name);
+            if (!IsUserAdmin(userId))
+            {
+                return Content("Unauthorized: Admin permission required.");
+            }
+
             var location = await _context.Locations.FindAsync(id);
             if (location == null)
             {
@@ -116,6 +144,12 @@ namespace CommitteeCalendarAPI.Controllers
         private bool LocationExists(Guid id)
         {
             return _context.Locations.Any(e => e.LocationId == id);
+        }
+
+        private bool IsUserAdmin(string userId)
+        {
+            var user = _context.UserAccounts.FirstOrDefault(u => u.Id.ToString() == userId);
+            return user != null && user.Adminpermission;
         }
     }
 }
