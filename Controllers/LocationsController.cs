@@ -46,7 +46,7 @@ namespace CommitteeCalendarAPI.Controllers
 
         // PUT: api/Locations/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutLocation(Guid id, Location location)
+        public async Task<IActionResult> PutLocation(Guid id, LocationsMinimal locationMinimal)
         {
             var userId = User.FindFirstValue(ClaimTypes.Name);
             if (!IsUserAdmin(userId))
@@ -54,10 +54,16 @@ namespace CommitteeCalendarAPI.Controllers
                 return Content("Unauthorized: Admin permission required.");
             }
 
-            if (id != location.LocationId)
+            var location = await _context.Locations.FindAsync(id);
+            if (location == null)
             {
-                return BadRequest();
+                return NotFound();
             }
+
+            location.LocationName = locationMinimal.LocationName;
+            location.LocationAddress = locationMinimal.LocationAddress;
+            location.LocationInfo = locationMinimal.LocationInfo;
+            location.LocationContact = locationMinimal.LocationContact;
 
             _context.Entry(location).State = EntityState.Modified;
 
@@ -92,7 +98,7 @@ namespace CommitteeCalendarAPI.Controllers
             }
             var location = new Location
             {
-                LocationId = Guid.NewGuid(), // Generate a new GUID for LocationId
+                LocationId = Guid.NewGuid(),
                 LocationName = locationMinimal.LocationName,
                 LocationAddress = locationMinimal.LocationAddress,
                 LocationInfo = locationMinimal.LocationInfo,
