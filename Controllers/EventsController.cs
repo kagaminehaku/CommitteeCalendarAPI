@@ -1,4 +1,4 @@
-﻿using System;
+﻿ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -9,6 +9,7 @@ using CommitteeCalendarAPI.Models;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using System.Net;
+using CommitteeCalendarAPI.ActionModels;
 
 namespace CommitteeCalendarAPI.Controllers
 {
@@ -22,13 +23,6 @@ namespace CommitteeCalendarAPI.Controllers
         {
             _context = context;
         }
-
-        //// GET: api/Events
-        //[HttpGet]
-        //public async Task<ActionResult<IEnumerable<Event>>> GetEvents()
-        //{
-        //    return await _context.Events.ToListAsync();
-        //}
 
         // GET: api/Events/5
         [HttpGet("{id}")]
@@ -75,7 +69,7 @@ namespace CommitteeCalendarAPI.Controllers
 
         // PUT: api/Events/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutEvent(Guid id, Event @event)
+        public async Task<IActionResult> PutEvent(Guid id, EventRequest eventRequest)
         {
             var userId = User.FindFirstValue(ClaimTypes.Name);
             var user = await _context.UserAccounts.FirstOrDefaultAsync(u => u.Id.ToString() == userId);
@@ -85,12 +79,50 @@ namespace CommitteeCalendarAPI.Controllers
                 return Content("Error: Only admin users can update events.");
             }
 
-            if (id != @event.EventId)
+            var existingEvent = await _context.Events
+                .Include(e => e.EventsParticipants)
+                .FirstOrDefaultAsync(e => e.EventId == id);
+
+            if (existingEvent == null)
             {
-                return BadRequest();
+                return NotFound();
             }
 
-            _context.Entry(@event).State = EntityState.Modified;
+            existingEvent.EventName = eventRequest.EventName;
+            existingEvent.HostPerson = eventRequest.HostPerson;
+            existingEvent.StartDate = eventRequest.StartDate;
+            existingEvent.StartTime = eventRequest.StartTime;
+            existingEvent.Duration = eventRequest.Duration;
+            existingEvent.Detail = eventRequest.Detail;
+            existingEvent.LocationId = eventRequest.LocationId;
+            existingEvent.Participants = eventRequest.Participants;
+            existingEvent.IsAppoved = eventRequest.IsAppoved;
+
+            var existingParticipantIds = existingEvent.EventsParticipants.Select(ep => ep.ParticipantsId).ToList();
+            var newParticipantIds = eventRequest.ParticipantIds.Except(existingParticipantIds).ToList();
+            var removedParticipantIds = existingParticipantIds.Except(eventRequest.ParticipantIds).ToList();
+
+            foreach (var participantId in removedParticipantIds)
+            {
+                var eventParticipant = existingEvent.EventsParticipants.FirstOrDefault(ep => ep.ParticipantsId == participantId);
+                if (eventParticipant != null)
+                {
+                    _context.EventsParticipants.Remove(eventParticipant);
+                }
+            }
+
+            foreach (var participantId in newParticipantIds)
+            {
+                var newEventParticipant = new EventsParticipant
+                {
+                    EvPartiId = Guid.NewGuid(),
+                    EventId = existingEvent.EventId,
+                    ParticipantsId = participantId
+                };
+                _context.EventsParticipants.Add(newEventParticipant);
+            }
+
+            _context.Entry(existingEvent).State = EntityState.Modified;
 
             try
             {
@@ -111,9 +143,10 @@ namespace CommitteeCalendarAPI.Controllers
             return NoContent();
         }
 
+
         // POST: api/Events
         [HttpPost]
-        public async Task<ActionResult<Event>> PostEvent(Event @event)
+        public async Task<ActionResult<Event>> PostEvent(EventRequest eventRequest)
         {
             var userId = User.FindFirstValue(ClaimTypes.Name);
             var user = await _context.UserAccounts.FirstOrDefaultAsync(u => u.Id.ToString() == userId);
@@ -123,9 +156,36 @@ namespace CommitteeCalendarAPI.Controllers
                 return Content("Error: Only admin users can create events.");
             }
 
+            var @event = new Event
+            {
+                EventId = Guid.NewGuid(),
+                EventName = eventRequest.EventName,
+                HostPerson = eventRequest.HostPerson,
+                StartDate = eventRequest.StartDate,
+                StartTime = eventRequest.StartTime,
+                Duration = eventRequest.Duration,
+                Detail = eventRequest.Detail,
+                LocationId = eventRequest.LocationId,
+                Participants = eventRequest.Participants,
+                IsAppoved = eventRequest.IsAppoved
+            };
+
             _context.Events.Add(@event);
             try
             {
+                await _context.SaveChangesAsync();
+
+                foreach (var participantId in eventRequest.ParticipantIds)
+                {
+                    var eventsParticipant = new EventsParticipant
+                    {
+                        EvPartiId = Guid.NewGuid(),
+                        EventId = @event.EventId,
+                        ParticipantsId = participantId
+                    };
+                    _context.EventsParticipants.Add(eventsParticipant);
+                }
+
                 await _context.SaveChangesAsync();
             }
             catch (DbUpdateException)
@@ -155,10 +215,18 @@ namespace CommitteeCalendarAPI.Controllers
                 return Content("Error: Only admin users can delete events.");
             }
 
-            var @event = await _context.Events.FindAsync(id);
+            var @event = await _context.Events
+                .Include(e => e.EventsParticipants)
+                .FirstOrDefaultAsync(e => e.EventId == id);
+
             if (@event == null)
             {
                 return NotFound();
+            }
+
+            foreach (var eventParticipant in @event.EventsParticipants)
+            {
+                _context.EventsParticipants.Remove(eventParticipant);
             }
 
             _context.Events.Remove(@event);
@@ -171,6 +239,7 @@ namespace CommitteeCalendarAPI.Controllers
         {
             return _context.Events.Any(e => e.EventId == id);
         }
+
 
         [HttpGet("GetMyEvents")]
         public async Task<ActionResult<IEnumerable<Event>>> GetMyEvents()
@@ -191,7 +260,6 @@ namespace CommitteeCalendarAPI.Controllers
 
             if (user.Adminpermission)
             {
-                // Return all events if the user has admin permissions
                 var allEvents = await _context.Events.ToListAsync();
                 return Ok(allEvents);
             }
@@ -204,7 +272,6 @@ namespace CommitteeCalendarAPI.Controllers
 
                 var participantId = user.ParticipantsId.Value;
 
-                // Return events that the user has joined
                 var events = await _context.Events
                     .Include(e => e.EventsParticipants)
                     .Where(e => e.EventsParticipants.Any(ep => ep.ParticipantsId == participantId))

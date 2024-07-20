@@ -135,10 +135,24 @@ namespace CommitteeCalendarAPI.Controllers
                 return Content("Unauthorized: Admin permission required.");
             }
 
-            var location = await _context.Locations.FindAsync(id);
+            var location = await _context.Locations
+                .Include(l => l.Events)
+                .ThenInclude(e => e.EventsParticipants) // Ensure to include EventsParticipants to delete them as well
+                .FirstOrDefaultAsync(l => l.LocationId == id);
+
             if (location == null)
             {
                 return NotFound();
+            }
+
+            // Remove associated Events and their EventParticipants
+            foreach (var @event in location.Events)
+            {
+                foreach (var eventParticipant in @event.EventsParticipants)
+                {
+                    _context.EventsParticipants.Remove(eventParticipant);
+                }
+                _context.Events.Remove(@event);
             }
 
             _context.Locations.Remove(location);
