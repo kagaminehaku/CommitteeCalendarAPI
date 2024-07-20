@@ -1,4 +1,4 @@
-﻿ using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -6,10 +6,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using CommitteeCalendarAPI.Models;
-using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
-using System.Net;
 using CommitteeCalendarAPI.ActionModels;
+using CommitteeCalendarAPI.BUS.Helpers;
 
 namespace CommitteeCalendarAPI.Controllers
 {
@@ -18,10 +17,12 @@ namespace CommitteeCalendarAPI.Controllers
     public class EventsController : ControllerBase
     {
         private readonly CommitteeCalendarContext _context;
+        private readonly AuthorizationHelper _authHelper;
 
         public EventsController(CommitteeCalendarContext context)
         {
             _context = context;
+            _authHelper = new AuthorizationHelper(_context);
         }
 
         // GET: api/Events/5
@@ -66,15 +67,11 @@ namespace CommitteeCalendarAPI.Controllers
             return Ok(@event);
         }
 
-
         // PUT: api/Events/5
         [HttpPut("{id}")]
         public async Task<IActionResult> PutEvent(Guid id, EventRequest eventRequest)
         {
-            var userId = User.FindFirstValue(ClaimTypes.Name);
-            var user = await _context.UserAccounts.FirstOrDefaultAsync(u => u.Id.ToString() == userId);
-
-            if (user == null || !user.Adminpermission)
+            if (!await _authHelper.IsUserAdminAsync(User))
             {
                 return Content("Error: Only admin users can update events.");
             }
@@ -143,15 +140,11 @@ namespace CommitteeCalendarAPI.Controllers
             return NoContent();
         }
 
-
         // POST: api/Events
         [HttpPost]
         public async Task<ActionResult<Event>> PostEvent(EventRequest eventRequest)
         {
-            var userId = User.FindFirstValue(ClaimTypes.Name);
-            var user = await _context.UserAccounts.FirstOrDefaultAsync(u => u.Id.ToString() == userId);
-
-            if (user == null || !user.Adminpermission)
+            if (!await _authHelper.IsUserAdminAsync(User))
             {
                 return Content("Error: Only admin users can create events.");
             }
@@ -207,10 +200,7 @@ namespace CommitteeCalendarAPI.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteEvent(Guid id)
         {
-            var userId = User.FindFirstValue(ClaimTypes.Name);
-            var user = await _context.UserAccounts.FirstOrDefaultAsync(u => u.Id.ToString() == userId);
-
-            if (user == null || !user.Adminpermission)
+            if (!await _authHelper.IsUserAdminAsync(User))
             {
                 return Content("Error: Only admin users can delete events.");
             }

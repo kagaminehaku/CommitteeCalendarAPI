@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using CommitteeCalendarAPI.Models;
-using BUS;
+using CommitteeCalendarAPI.BUS;
 using CommitteeCalendarAPI.ActionModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
