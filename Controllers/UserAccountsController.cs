@@ -14,6 +14,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using System.Configuration;
+using CommitteeCalendarAPI.BUS.Helpers;
 
 namespace CommitteeCalendarAPI.Controllers
 {
@@ -23,42 +24,85 @@ namespace CommitteeCalendarAPI.Controllers
     {
         private readonly CommitteeCalendarContext _context;
         private readonly IConfiguration _configuration;
+        private readonly AuthorizationHelper _authHelper;
+
         public UserAccountsController(CommitteeCalendarContext context, IConfiguration configuration)
         {
             _context = context;
             _configuration = configuration;
+            _authHelper = new AuthorizationHelper(_context);
         }
 
         // GET: api/UserAccounts
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<UserAccount>>> GetUserAccounts()
+        public async Task<ActionResult<IEnumerable<UserAccountMinimal>>> GetUserAccounts()
         {
-            return await _context.UserAccounts.ToListAsync();
+            var userId = User.FindFirstValue(ClaimTypes.Name);
+            if (!await _authHelper.IsUserAdminAsync(User))
+            {
+                return Content("Unauthorized: Admin permission required.");
+            }
+
+            return await _context.UserAccounts
+                .Where(u => !u.Adminpermission)
+                .Select(u => new UserAccountMinimal
+                {
+                    Username = u.Username,
+                    Avatar = u.Avatar
+                })
+                .ToListAsync();
         }
 
-        //// GET: api/UserAccounts/5
-        //[HttpGet("{id}")]
-        //public async Task<ActionResult<UserAccount>> GetUserAccount(Guid id)
-        //{
-        //    var userAccount = await _context.UserAccounts.FindAsync(id);
-
-        //    if (userAccount == null)
-        //    {
-        //        return NotFound();
-        //    }
-
-        //    return userAccount;
-        //}
-
-        // PUT: api/UserAccounts/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutUserAccount(Guid id, UserAccount userAccount)
+        // GET: api/UserAccounts/username/{username}
+        [HttpGet("username/{username}")]
+        public async Task<ActionResult<UserAccountMinimal>> GetUserAccountByUsername(string username)
         {
-            if (id != userAccount.Id)
+            if (!await _authHelper.IsUserAdminAsync(User))
             {
-                return BadRequest();
+                return Content("Unauthorized: Admin permission required.");
             }
+
+            var userAccount = await _context.UserAccounts
+                .Include(u => u.Participants)
+                .FirstOrDefaultAsync(u => u.Username == username);
+
+            if (userAccount == null)
+            {
+                return NotFound();
+            }
+
+            return new UserAccountMinimal
+            {
+                Username = userAccount.Username,
+                Info = userAccount.Info,
+                Avatar = userAccount.Avatar,
+                Email = userAccount.Email,
+                Phonenumber = userAccount.Phonenumber,
+                ParticipantsName = userAccount.Participants?.ParticipantsName
+            };
+        }
+
+        // PUT: api/UserAccounts/username/{username}
+        [HttpPut("username/{username}")]
+        public async Task<IActionResult> PutUserAccountByUsername(string username, UserAccountUpdate userAccountUpdate)
+        {
+            if (!await _authHelper.IsUserAdminAsync(User))
+            {
+                return Content("Unauthorized: Admin permission required.");
+            }
+
+            var userAccount = await _context.UserAccounts
+                .FirstOrDefaultAsync(u => u.Username == username);
+
+            if (userAccount == null)
+            {
+                return NotFound();
+            }
+
+            userAccount.Info = userAccountUpdate.Info;
+            userAccount.Avatar = userAccountUpdate.Avatar;
+            userAccount.Email = userAccountUpdate.Email;
+            userAccount.Phonenumber = userAccountUpdate.Phonenumber;
 
             _context.Entry(userAccount).State = EntityState.Modified;
 
@@ -68,7 +112,7 @@ namespace CommitteeCalendarAPI.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!UserAccountExists(id))
+                if (!UserAccountExists(userAccount.Id))
                 {
                     return NotFound();
                 }
@@ -81,33 +125,28 @@ namespace CommitteeCalendarAPI.Controllers
             return NoContent();
         }
 
-        // POST: api/UserAccounts
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [AllowAnonymous]
+        // POST: api/UserAccounts/Register
         [HttpPost("Register")]
-        public async Task<ActionResult<UserAccount>> PostUserAccount(UserAccount userAccount)
+        public async Task<ActionResult<UserAccount>> Register(UserLoginRequest userLoginRequest)
         {
+            if (!await _authHelper.IsUserAdminAsync(User))
+            {
+                return Content("Unauthorized: Admin permission required.");
+            }
+
+            var userAccount = new UserAccount
+            {
+                Id = Guid.NewGuid(),
+                Username = userLoginRequest.Username,
+                Password = BUSPWDHashing.EncryptData(userLoginRequest.Password),
+                Adminpermission = false
+            };
+
             _context.UserAccounts.Add(userAccount);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetUserAccount", new { id = userAccount.Id }, userAccount);
+            return CreatedAtAction("GetUserAccountByUsername", new { username = userAccount.Username }, userAccount);
         }
-
-        //// DELETE: api/UserAccounts/5
-        //[HttpDelete("{id}")]
-        //public async Task<IActionResult> DeleteUserAccount(Guid id)
-        //{
-        //    var userAccount = await _context.UserAccounts.FindAsync(id);
-        //    if (userAccount == null)
-        //    {
-        //        return NotFound();
-        //    }
-
-        //    _context.UserAccounts.Remove(userAccount);
-        //    await _context.SaveChangesAsync();
-
-        //    return NoContent();
-        //}
 
         [AllowAnonymous]
         [HttpPost("Login")]
@@ -136,7 +175,6 @@ namespace CommitteeCalendarAPI.Controllers
                     new Claim(ClaimTypes.Name, user.Id.ToString())
                 }),
                 Expires = DateTime.UtcNow.AddDays(7),
-                //Expires = DateTime.UtcNow.AddSeconds(15),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
             var token = tokenHandler.CreateToken(tokenDescriptor);
