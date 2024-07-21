@@ -148,6 +148,44 @@ namespace CommitteeCalendarAPI.Controllers
             return CreatedAtAction("GetUserAccountByUsername", new { username = userAccount.Username }, userAccount);
         }
 
+
+
+        // POST: api/UserAccounts/ChangePassword
+        [HttpPost("ChangePassword")]
+        public async Task<IActionResult> ChangePassword([FromBody] PasswordChangeRequest passwordChangeRequest)
+        {
+            var requester = await _context.UserAccounts.FirstOrDefaultAsync(u => u.Username == passwordChangeRequest.RequesterUsername);
+            if (requester == null)
+            {
+                return Unauthorized("Requester not found.");
+            }
+
+            var targetUser = await _context.UserAccounts.FirstOrDefaultAsync(u => u.Username == passwordChangeRequest.TargetUsername);
+            if (targetUser == null)
+            {
+                return NotFound("Target user not found.");
+            }
+
+            if (requester.Adminpermission)
+            {
+                targetUser.Password = BUSPWDHashing.EncryptData(passwordChangeRequest.NewPassword);
+            }
+            else
+            {
+                if (requester.Username != passwordChangeRequest.TargetUsername || !VerifyPassword(passwordChangeRequest.CurrentPassword, targetUser.Password))
+                {
+                    return Unauthorized("Current password is incorrect or you do not have permission to change this password.");
+                }
+
+                targetUser.Password = BUSPWDHashing.EncryptData(passwordChangeRequest.NewPassword);
+            }
+
+            _context.Entry(targetUser).State = EntityState.Modified;
+            await _context.SaveChangesAsync();
+
+            return Ok("Password changed successfully.");
+        }       
+
         [AllowAnonymous]
         [HttpPost("Login")]
         public async Task<IActionResult> Login(UserLoginRequest loginRequest)
