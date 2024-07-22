@@ -88,7 +88,7 @@ namespace CommitteeCalendarAPI.Controllers
         {
             if (!await _authHelper.IsUserAdminAsync(User))
             {
-                return Unauthorized("Admin permission required.");
+                return Unauthorized("Unauthorized: Admin permission required.");
             }
 
             var usersWithoutParticipants = await _context.UserAccounts
