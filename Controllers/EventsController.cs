@@ -36,12 +36,12 @@ namespace CommitteeCalendarAPI.Controllers
 
             if (user == null)
             {
-                return Content("Error: Your account is not bound to any participant.");
+                return NotFound("Error: User not exist.");
             }
 
             if (user.ParticipantsId == null)
             {
-                return Content("Error: You have no associated participant.");
+                return BadRequest("Error: You have no associated participant.");
             }
 
             var participantId = user.ParticipantsId.Value;
@@ -51,7 +51,7 @@ namespace CommitteeCalendarAPI.Controllers
 
             if (@event == null)
             {
-                return Content("Error: Event not found.");
+                return NotFound("Error: Event not found.");
             }
 
             if (!@event.EventsParticipants.Any(ep => ep.ParticipantsId == participantId))
