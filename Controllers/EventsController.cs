@@ -1,14 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
+﻿using CommitteeCalendarAPI.ActionModels;
+using CommitteeCalendarAPI.BUS.Helpers;
+using CommitteeCalendarAPI.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using CommitteeCalendarAPI.Models;
 using System.Security.Claims;
-using CommitteeCalendarAPI.ActionModels;
-using CommitteeCalendarAPI.BUS.Helpers;
 
 namespace CommitteeCalendarAPI.Controllers
 {

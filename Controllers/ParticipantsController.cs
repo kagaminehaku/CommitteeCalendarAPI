@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
+﻿using CommitteeCalendarAPI.ActionModels;
+using CommitteeCalendarAPI.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using CommitteeCalendarAPI.Models;
-using CommitteeCalendarAPI.ActionModels;
 
 namespace CommitteeCalendarAPI.Controllers
 {
@@ -91,7 +86,7 @@ namespace CommitteeCalendarAPI.Controllers
                 }
             }
 
-            return NoContent();
+            return Ok("Ok");
         }
 
         private bool ParticipantExists(Guid id)

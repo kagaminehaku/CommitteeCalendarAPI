@@ -1,20 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
+﻿using CommitteeCalendarAPI.ActionModels;
+using CommitteeCalendarAPI.BUS;
+using CommitteeCalendarAPI.BUS.Helpers;
+using CommitteeCalendarAPI.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using CommitteeCalendarAPI.Models;
-using CommitteeCalendarAPI.BUS;
-using CommitteeCalendarAPI.ActionModels;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using System.Configuration;
-using CommitteeCalendarAPI.BUS.Helpers;
 
 namespace CommitteeCalendarAPI.Controllers
 {
@@ -122,7 +116,7 @@ namespace CommitteeCalendarAPI.Controllers
                 }
             }
 
-            return NoContent();
+            return Ok("Ok");
         }
 
         // POST: api/UserAccounts/Register
@@ -155,7 +149,7 @@ namespace CommitteeCalendarAPI.Controllers
             {
                 ParticipantsId = Guid.NewGuid(),
                 ParticipantsName = userLoginRequest.Username,
-                ParticipantsRepresentative = "Default", 
+                ParticipantsRepresentative = "Default",
                 ParticipantsPhonenumber = "Default",
                 ParticipantsEmail = "Default"
             };
@@ -222,7 +216,7 @@ namespace CommitteeCalendarAPI.Controllers
             }
 
             return Ok("Password changed successfully.");
-        }       
+        }
 
         [AllowAnonymous]
         [HttpPost("Login")]

@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace CommitteeCalendarAPI.Models
+﻿namespace CommitteeCalendarAPI.Models
 {
     public class UserAccountMinimal
     {
@@ -14,7 +12,6 @@ namespace CommitteeCalendarAPI.Models
 
     public class UserAccountUpdate
     {
-        public string? Username { get; set; }
         public string? Info { get; set; }
         public string? Avatar { get; set; }
         public string? Email { get; set; }

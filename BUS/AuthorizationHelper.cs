@@ -1,12 +1,11 @@
-﻿using System.Security.Claims;
-using System.Threading.Tasks;
-using CommitteeCalendarAPI.Models;
+﻿using CommitteeCalendarAPI.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace CommitteeCalendarAPI.BUS.Helpers
 {
     public class AuthorizationHelper
-    {   
+    {
         private readonly CommitteeCalendarContext _context;
 
         public AuthorizationHelper(CommitteeCalendarContext context)

@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace CommitteeCalendarAPI.Models;
+﻿namespace CommitteeCalendarAPI.Models;
 
 public partial class Location
 {

@@ -2,8 +2,6 @@
 {
     public class LocationsMinimal
     {
-        //public Guid LocationId { get; set; }
-
         public string LocationName { get; set; } = null!;
 
         public string LocationAddress { get; set; } = null!;

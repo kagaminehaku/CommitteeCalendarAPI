@@ -1,14 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
+﻿using CommitteeCalendarAPI.ActionModels;
+using CommitteeCalendarAPI.BUS.Helpers;
+using CommitteeCalendarAPI.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using CommitteeCalendarAPI.Models;
-using System.Security.Claims;
-using CommitteeCalendarAPI.ActionModels;
-using CommitteeCalendarAPI.BUS.Helpers;
 
 namespace CommitteeCalendarAPI.Controllers
 {
@@ -27,14 +21,24 @@ namespace CommitteeCalendarAPI.Controllers
 
         // GET: api/Locations
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Location>>> GetLocations()
+        public async Task<ActionResult<IEnumerable<LocationsMinimal>>> GetLocations()
         {
-            return await _context.Locations.ToListAsync();
+            var locations = await _context.Locations.ToListAsync();
+
+            var locationsMinimal = locations.Select(location => new LocationsMinimal
+            {
+                LocationName = location.LocationName,
+                LocationAddress = location.LocationAddress,
+                LocationInfo = location.LocationInfo,
+                LocationContact = location.LocationContact
+            }).ToList();
+
+            return Ok(locationsMinimal);
         }
 
         // GET: api/Locations/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Location>> GetLocation(Guid id)
+        public async Task<ActionResult<LocationsMinimal>> GetLocation(Guid id)
         {
             var location = await _context.Locations.FindAsync(id);
 
@@ -43,8 +47,17 @@ namespace CommitteeCalendarAPI.Controllers
                 return NotFound();
             }
 
-            return location;
+            var locationMinimal = new LocationsMinimal
+            {
+                LocationName = location.LocationName,
+                LocationAddress = location.LocationAddress,
+                LocationInfo = location.LocationInfo,
+                LocationContact = location.LocationContact
+            };
+
+            return Ok(locationMinimal);
         }
+
 
         // PUT: api/Locations/5
         [HttpPut("{id}")]
@@ -84,7 +97,7 @@ namespace CommitteeCalendarAPI.Controllers
                 }
             }
 
-            return NoContent();
+            return Ok("Ok");
         }
 
         // POST: api/Locations
@@ -122,7 +135,7 @@ namespace CommitteeCalendarAPI.Controllers
                 }
             }
 
-            return Content("Ok");
+            return Ok("Ok");
         }
 
         // DELETE: api/Locations/5
@@ -156,7 +169,7 @@ namespace CommitteeCalendarAPI.Controllers
             _context.Locations.Remove(location);
             await _context.SaveChangesAsync();
 
-            return NoContent();
+            return Ok("Ok");
         }
 
         private bool LocationExists(Guid id)

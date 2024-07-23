@@ -1,6 +1,4 @@
-﻿using CommitteeCalendarAPI.Models;
-
-namespace CommitteeCalendarAPI.ActionModels
+﻿namespace CommitteeCalendarAPI.ActionModels
 {
     public class EventRequestPostPut
     {
