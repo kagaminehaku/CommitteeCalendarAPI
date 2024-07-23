@@ -35,7 +35,6 @@ namespace CommitteeCalendarAPI.Controllers
 
         // GET: api/UserAccounts
         [HttpGet]
-        [AllowAnonymous]
         public async Task<ActionResult<IEnumerable<UserAccountMinimal>>> GetUserAccounts()
         {
             var userId = User.FindFirstValue(ClaimTypes.Name);
@@ -133,6 +132,11 @@ namespace CommitteeCalendarAPI.Controllers
             if (!await _authHelper.IsUserAdminAsync(User))
             {
                 return Content("Unauthorized: Admin permission required.");
+            }
+
+            if (await _context.UserAccounts.AnyAsync(u => u.Username == userLoginRequest.Username))
+            {
+                return BadRequest("Error: Username already exists.");
             }
 
             var userAccount = new UserAccount
