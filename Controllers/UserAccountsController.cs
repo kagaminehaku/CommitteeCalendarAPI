@@ -83,6 +83,30 @@ namespace CommitteeCalendarAPI.Controllers
             };
         }
 
+        // GET: api/UserAccounts/UsersWithoutParticipants
+        [HttpGet("UsersWithoutParticipants")]
+        public async Task<ActionResult<IEnumerable<UserAccountMinimal>>> GetUsersWithoutParticipants()
+        {
+            if (!await _authHelper.IsUserAdminAsync(User))
+            {
+                return Unauthorized("Unauthorized: Admin permission required.");
+            }
+
+            var usersWithoutParticipants = await _context.UserAccounts
+                .Where(u => u.ParticipantsId == null && !u.Adminpermission)
+                .Select(u => new UserAccountMinimal
+                {
+                    Username = u.Username,
+                    Info = u.Info,
+                    Avatar = u.Avatar,
+                    Email = u.Email,
+                    Phonenumber = u.Phonenumber
+                })
+                .ToListAsync();
+
+            return Ok(usersWithoutParticipants);
+        }
+
         // PUT: api/UserAccounts/username/{username}
         [HttpPut("username/{username}")]
         public async Task<IActionResult> PutUserAccountByUsername(string username, UserAccountUpdate userAccountUpdate)
