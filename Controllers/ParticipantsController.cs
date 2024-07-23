@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using CommitteeCalendarAPI.Models;
+using CommitteeCalendarAPI.ActionModels;
 
 namespace CommitteeCalendarAPI.Controllers
 {
@@ -22,14 +23,43 @@ namespace CommitteeCalendarAPI.Controllers
 
         // GET: api/Participants
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Participant>>> GetParticipants()
+        public async Task<ActionResult<IEnumerable<ParticipantGet>>> GetParticipants()
         {
-            return await _context.Participants.ToListAsync();
+            var participants = await _context.Participants
+                .Select(p => new ParticipantGet
+                {
+                    Id = p.ParticipantsId,
+                    ParticipantsName = p.ParticipantsName
+                })
+                .ToListAsync();
+
+            return Ok(participants);
         }
 
         // GET: api/Participants/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<Participant>> GetParticipant(Guid id)
+        public async Task<ActionResult<ParticipantGet>> GetParticipant(Guid id)
+        {
+            var participant = await _context.Participants
+                .Select(p => new ParticipantGet
+                {
+                    Id = p.ParticipantsId,
+                    ParticipantsName = p.ParticipantsName
+                })
+                .FirstOrDefaultAsync(p => p.Id == id);
+
+            if (participant == null)
+            {
+                return NotFound();
+            }
+
+            return Ok(participant);
+        }
+
+        // PUT: api/Participants/5
+        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+        [HttpPut("{id}")]
+        public async Task<IActionResult> PutParticipant(Guid id, ParticipantPutPost participantPutPost)
         {
             var participant = await _context.Participants.FindAsync(id);
 
@@ -38,18 +68,10 @@ namespace CommitteeCalendarAPI.Controllers
                 return NotFound();
             }
 
-            return participant;
-        }
-
-        // PUT: api/Participants/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutParticipant(Guid id, Participant participant)
-        {
-            if (id != participant.ParticipantsId)
-            {
-                return BadRequest();
-            }
+            participant.ParticipantsName = participantPutPost.ParticipantsName;
+            participant.ParticipantsRepresentative = participantPutPost.ParticipantsRepresentative;
+            participant.ParticipantsPhonenumber = participantPutPost.ParticipantsPhonenumber;
+            participant.ParticipantsEmail = participantPutPost.ParticipantsEmail;
 
             _context.Entry(participant).State = EntityState.Modified;
 
@@ -68,47 +90,6 @@ namespace CommitteeCalendarAPI.Controllers
                     throw;
                 }
             }
-
-            return NoContent();
-        }
-
-        // POST: api/Participants
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<Participant>> PostParticipant(Participant participant)
-        {
-            _context.Participants.Add(participant);
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateException)
-            {
-                if (ParticipantExists(participant.ParticipantsId))
-                {
-                    return Conflict();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return CreatedAtAction("GetParticipant", new { id = participant.ParticipantsId }, participant);
-        }
-
-        // DELETE: api/Participants/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteParticipant(Guid id)
-        {
-            var participant = await _context.Participants.FindAsync(id);
-            if (participant == null)
-            {
-                return NotFound();
-            }
-
-            _context.Participants.Remove(participant);
-            await _context.SaveChangesAsync();
 
             return NoContent();
         }

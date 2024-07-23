@@ -35,6 +35,7 @@ namespace CommitteeCalendarAPI.Controllers
 
         // GET: api/UserAccounts
         [HttpGet]
+        [AllowAnonymous]
         public async Task<ActionResult<IEnumerable<UserAccountMinimal>>> GetUserAccounts()
         {
             var userId = User.FindFirstValue(ClaimTypes.Name);
@@ -139,14 +140,39 @@ namespace CommitteeCalendarAPI.Controllers
                 Id = Guid.NewGuid(),
                 Username = userLoginRequest.Username,
                 Password = BUSPWDHashing.EncryptData(userLoginRequest.Password),
+                Info = "Default",
+                Avatar = "https://i.ibb.co/HzkrGtb/s-l500.jpg",
+                Email = "Default@email.com",
+                Phonenumber = "Default",
                 Adminpermission = false
             };
 
-            _context.UserAccounts.Add(userAccount);
-            await _context.SaveChangesAsync();
+            var participant = new Participant
+            {
+                ParticipantsId = Guid.NewGuid(),
+                ParticipantsName = userLoginRequest.Username,
+                ParticipantsRepresentative = "Default", 
+                ParticipantsPhonenumber = "Default",
+                ParticipantsEmail = "Default"
+            };
 
-            return CreatedAtAction("GetUserAccountByUsername", new { username = userAccount.Username }, userAccount);
+            userAccount.ParticipantsId = participant.ParticipantsId;
+
+            _context.Participants.Add(participant);
+            _context.UserAccounts.Add(userAccount);
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while creating the user account and participant.");
+            }
+
+            return Ok("User account and participant created successfully.");
         }
+
 
 
 
@@ -181,7 +207,15 @@ namespace CommitteeCalendarAPI.Controllers
             }
 
             _context.Entry(targetUser).State = EntityState.Modified;
-            await _context.SaveChangesAsync();
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while creating the user account and participant.");
+            }
 
             return Ok("Password changed successfully.");
         }       
