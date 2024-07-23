@@ -1,5 +1,5 @@
 ﻿using CommitteeCalendarAPI.ActionModels;
-using CommitteeCalendarAPI.BUS.Helpers;
+using CommitteeCalendarAPI.IMPLogic.Helpers;
 using CommitteeCalendarAPI.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;

@@ -1,6 +1,6 @@
 ﻿using CommitteeCalendarAPI.ActionModels;
-using CommitteeCalendarAPI.BUS;
-using CommitteeCalendarAPI.BUS.Helpers;
+using CommitteeCalendarAPI.IMPLogic;
+using CommitteeCalendarAPI.IMPLogic.Helpers;
 using CommitteeCalendarAPI.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -137,7 +137,7 @@ namespace CommitteeCalendarAPI.Controllers
             {
                 Id = Guid.NewGuid(),
                 Username = userLoginRequest.Username,
-                Password = BUSPWDHashing.EncryptData(userLoginRequest.Password),
+                Password = IMPPWDHashing.EncryptData(userLoginRequest.Password),
                 Info = "Default",
                 Avatar = "https://i.ibb.co/HzkrGtb/s-l500.jpg",
                 Email = "Default@email.com",
@@ -192,7 +192,7 @@ namespace CommitteeCalendarAPI.Controllers
 
             if (requester.Adminpermission)
             {
-                targetUser.Password = BUSPWDHashing.EncryptData(passwordChangeRequest.NewPassword);
+                targetUser.Password = IMPPWDHashing.EncryptData(passwordChangeRequest.NewPassword);
             }
             else
             {
@@ -201,7 +201,7 @@ namespace CommitteeCalendarAPI.Controllers
                     return Unauthorized("Current password is incorrect or you do not have permission to change this password.");
                 }
 
-                targetUser.Password = BUSPWDHashing.EncryptData(passwordChangeRequest.NewPassword);
+                targetUser.Password = IMPPWDHashing.EncryptData(passwordChangeRequest.NewPassword);
             }
 
             _context.Entry(targetUser).State = EntityState.Modified;
@@ -253,7 +253,7 @@ namespace CommitteeCalendarAPI.Controllers
 
         private bool VerifyPassword(string inputPassword, string storedPasswordHash)
         {
-            string inputPasswordHash = BUSPWDHashing.EncryptData(inputPassword);
+            string inputPasswordHash = IMPPWDHashing.EncryptData(inputPassword);
             return inputPasswordHash == storedPasswordHash;
         }
 

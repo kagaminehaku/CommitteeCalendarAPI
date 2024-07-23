@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
-namespace CommitteeCalendarAPI.BUS.Helpers
+namespace CommitteeCalendarAPI.IMPLogic.Helpers
 {
     public class AuthorizationHelper
     {

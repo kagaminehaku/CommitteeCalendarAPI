@@ -1,9 +1,9 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
 
-namespace CommitteeCalendarAPI.BUS
+namespace CommitteeCalendarAPI.IMPLogic
 {
-    internal class BUSPWDHashing
+    internal class IMPPWDHashing
     {
         public static string EncryptData(string input)
         {
