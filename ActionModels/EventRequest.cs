@@ -16,8 +16,6 @@
 
         public Guid LocationId { get; set; }
 
-        public string Participants { get; set; } = null!;
-
         public bool IsAppoved { get; set; }
         public List<Guid> ParticipantIds { get; set; } = new List<Guid>();
     }
@@ -39,8 +37,6 @@
         public string Detail { get; set; } = null!;
 
         public Guid LocationId { get; set; }
-
-        public string Participants { get; set; } = null!;
 
         public bool IsAppoved { get; set; }
         public List<Guid> ParticipantIds { get; set; } = new List<Guid>();

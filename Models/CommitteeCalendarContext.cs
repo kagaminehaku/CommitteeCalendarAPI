@@ -50,9 +50,6 @@ public partial class CommitteeCalendarContext : DbContext
                 .HasColumnName("host_person");
             entity.Property(e => e.IsAppoved).HasColumnName("is_appoved");
             entity.Property(e => e.LocationId).HasColumnName("location_id");
-            entity.Property(e => e.Participants)
-                .HasColumnType("text")
-                .HasColumnName("participants");
             entity.Property(e => e.StartDate).HasColumnName("start_date");
             entity.Property(e => e.StartTime).HasColumnName("start_time");
 

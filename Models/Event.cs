@@ -18,8 +18,6 @@ public partial class Event
 
     public Guid LocationId { get; set; }
 
-    public string Participants { get; set; } = null!;
-
     public bool IsAppoved { get; set; }
 
     public virtual ICollection<EventsParticipant> EventsParticipants { get; set; } = new List<EventsParticipant>();

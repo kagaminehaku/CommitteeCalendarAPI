@@ -39,11 +39,6 @@ namespace CommitteeCalendarAPI.Controllers
                 return NotFound("Error: User not exist.");
             }
 
-            if (user.ParticipantsId == null)
-            {
-                return BadRequest("Error: You have no associated participant.");
-            }
-
             var participantId = user.ParticipantsId.Value;
 
             var @event = await _context.Events.Include(e => e.EventsParticipants)
@@ -69,7 +64,6 @@ namespace CommitteeCalendarAPI.Controllers
                 Duration = @event.Duration,
                 Detail = @event.Detail,
                 LocationId = @event.LocationId,
-                Participants = @event.Participants,
                 IsAppoved = @event.IsAppoved,
                 ParticipantIds = @event.EventsParticipants.Select(ep => ep.ParticipantsId).ToList()
             };
@@ -102,7 +96,7 @@ namespace CommitteeCalendarAPI.Controllers
             existingEvent.Duration = eventRequest.Duration;
             existingEvent.Detail = eventRequest.Detail;
             existingEvent.LocationId = eventRequest.LocationId;
-            existingEvent.Participants = eventRequest.Participants;
+            //existingEvent.Participants = eventRequest.Participants;
             existingEvent.IsAppoved = eventRequest.IsAppoved;
 
             var existingParticipantIds = existingEvent.EventsParticipants.Select(ep => ep.ParticipantsId).ToList();
@@ -174,7 +168,6 @@ namespace CommitteeCalendarAPI.Controllers
                 Duration = eventRequest.Duration,
                 Detail = eventRequest.Detail,
                 LocationId = eventRequest.LocationId,
-                Participants = eventRequest.Participants,
                 IsAppoved = isAdmin ? true : false
             };
 
@@ -287,21 +280,7 @@ namespace CommitteeCalendarAPI.Controllers
         [HttpGet("GetMyEvents")]
         public async Task<ActionResult<IEnumerable<EventRequestGet>>> GetMyEvents()
         {
-            var userId = User.FindFirstValue(ClaimTypes.Name);
-
-            if (userId == null)
-            {
-                return Content("Unauthorized: Not logged in yet or token invalid.");
-            }
-
-            var user = await _context.UserAccounts.Include(u => u.Participants).FirstOrDefaultAsync(u => u.Id.ToString() == userId);
-
-            if (user == null)
-            {
-                return Content("Error: Your account not binding yet.");
-            }
-
-            if (user.Adminpermission)
+            if (await _authHelper.IsUserAdminAsync(User))
             {
                 var allEvents = await _context.Events.Include(e => e.EventsParticipants).ToListAsync();
                 var eventResponses = allEvents.Select(e => new EventRequestGet
@@ -314,7 +293,6 @@ namespace CommitteeCalendarAPI.Controllers
                     Duration = e.Duration,
                     Detail = e.Detail,
                     LocationId = e.LocationId,
-                    Participants = e.Participants,
                     IsAppoved = e.IsAppoved,
                     ParticipantIds = e.EventsParticipants.Select(ep => ep.ParticipantsId).ToList()
                 }).ToList();
@@ -323,11 +301,8 @@ namespace CommitteeCalendarAPI.Controllers
             }
             else
             {
-                if (user.ParticipantsId == null)
-                {
-                    return Content("Success: You have no events.");
-                }
-
+                var userId = User.FindFirstValue(ClaimTypes.Name);
+                var user = await _context.UserAccounts.Include(u => u.Participants).FirstOrDefaultAsync(u => u.Id.ToString() == userId);
                 var participantId = user.ParticipantsId.Value;
 
                 var events = await _context.Events
@@ -345,7 +320,6 @@ namespace CommitteeCalendarAPI.Controllers
                     Duration = e.Duration,
                     Detail = e.Detail,
                     LocationId = e.LocationId,
-                    Participants = e.Participants,
                     IsAppoved = e.IsAppoved,
                     ParticipantIds = e.EventsParticipants.Select(ep => ep.ParticipantsId).ToList()
                 }).ToList();
