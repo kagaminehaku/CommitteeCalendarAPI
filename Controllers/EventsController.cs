@@ -96,7 +96,6 @@ namespace CommitteeCalendarAPI.Controllers
             existingEvent.Duration = eventRequest.Duration;
             existingEvent.Detail = eventRequest.Detail;
             existingEvent.LocationId = eventRequest.LocationId;
-            //existingEvent.Participants = eventRequest.Participants;
             existingEvent.IsAppoved = eventRequest.IsAppoved;
 
             var existingParticipantIds = existingEvent.EventsParticipants.Select(ep => ep.ParticipantsId).ToList();
@@ -141,7 +140,7 @@ namespace CommitteeCalendarAPI.Controllers
                 }
             }
 
-            return NoContent();
+            return Ok("Ok");
         }
 
         // POST: api/Events
@@ -157,7 +156,6 @@ namespace CommitteeCalendarAPI.Controllers
             }
 
             bool isAdmin = await _authHelper.IsUserAdminAsync(User);
-
             var @event = new Event
             {
                 EventId = Guid.NewGuid(),
@@ -187,6 +185,17 @@ namespace CommitteeCalendarAPI.Controllers
                     _context.EventsParticipants.Add(eventsParticipant);
                 }
 
+                if (!isAdmin && user.ParticipantsId.HasValue && !eventRequest.ParticipantIds.Contains(user.ParticipantsId.Value))
+                {
+                    var creatorParticipant = new EventsParticipant
+                    {
+                        EvPartiId = Guid.NewGuid(),
+                        EventId = @event.EventId,
+                        ParticipantsId = user.ParticipantsId.Value
+                    };
+                    _context.EventsParticipants.Add(creatorParticipant);
+                }
+
                 await _context.SaveChangesAsync();
             }
             catch (DbUpdateException)
@@ -201,9 +210,8 @@ namespace CommitteeCalendarAPI.Controllers
                 }
             }
 
-            return CreatedAtAction("GetEvent", new { id = @event.EventId }, @event);
+            return Ok("Ok");
         }
-
 
         // DELETE: api/Events/5
         [HttpDelete("{id}")]
@@ -229,9 +237,17 @@ namespace CommitteeCalendarAPI.Controllers
             }
 
             _context.Events.Remove(@event);
-            await _context.SaveChangesAsync();
 
-            return NoContent();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                throw;
+            }
+
+            return Ok("Ok");
         }
 
         private bool EventExists(Guid id)
