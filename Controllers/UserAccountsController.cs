@@ -261,6 +261,32 @@ namespace CommitteeCalendarAPI.Controllers
             return Ok(new { Token = token });
         }
 
+        [HttpGet("GetUserRole")]
+        public async Task<IActionResult> GetUserRole()
+        {
+            try
+            {
+                var userId = User.FindFirstValue(ClaimTypes.Name);
+                if (userId == null)
+                {
+                    return Unauthorized("Invalid token or token missing.");
+                }
+
+                var userAccount = await _context.UserAccounts.FindAsync(Guid.Parse(userId));
+                if (userAccount == null)
+                {
+                    return NotFound("User not found.");
+                }
+
+                return Ok(new { Role = userAccount.Adminpermission ? "Admin" : "User" });
+            }
+            catch (Exception ex)
+            {
+                // Handle exceptions accordingly
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
+        }
+
         private string GenerateJwtToken(UserAccount user)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
