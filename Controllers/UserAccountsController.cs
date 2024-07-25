@@ -198,20 +198,18 @@ namespace CommitteeCalendarAPI.Controllers
             return Ok("User account and participant created successfully.");
         }
 
-
-
-
         // POST: api/UserAccounts/ChangePassword
         [HttpPost("ChangePassword")]
         public async Task<IActionResult> ChangePassword([FromBody] PasswordChangeRequest passwordChangeRequest)
         {
-            var requester = await _context.UserAccounts.FirstOrDefaultAsync(u => u.Username == passwordChangeRequest.RequesterUsername);
+            var userId = User.FindFirstValue(ClaimTypes.Name);
+            var requester = await _context.UserAccounts.FirstOrDefaultAsync(u => u.Id == Guid.Parse(userId));
             if (requester == null)
             {
                 return Unauthorized("Requester not found.");
             }
 
-            var targetUser = await _context.UserAccounts.FirstOrDefaultAsync(u => u.Username == passwordChangeRequest.TargetUsername);
+            var targetUser = await _context.UserAccounts.FirstOrDefaultAsync(u => u.Id == Guid.Parse(userId));
             if (targetUser == null)
             {
                 return NotFound("Target user not found.");
@@ -223,10 +221,10 @@ namespace CommitteeCalendarAPI.Controllers
             }
             else
             {
-                if (requester.Username != passwordChangeRequest.TargetUsername || !VerifyPassword(passwordChangeRequest.CurrentPassword, targetUser.Password))
-                {
-                    return Unauthorized("Current password is incorrect or you do not have permission to change this password.");
-                }
+                //if (requester.Username != passwordChangeRequest.TargetUsername || !VerifyPassword(passwordChangeRequest.CurrentPassword, targetUser.Password))
+                //{
+                //    return Unauthorized("Current password is incorrect or you do not have permission to change this password.");
+                //}
 
                 targetUser.Password = IMPPWDHashing.EncryptData(passwordChangeRequest.NewPassword);
             }
