@@ -50,7 +50,7 @@ namespace CommitteeCalendarAPI.Controllers
                 .ToListAsync();
         }
 
-        // GET: api/UserAccounts/username/{username}
+        // GET: api/UserAccounts/username/{username}    
         [HttpGet("username/{username}")]
         public async Task<ActionResult<UserAccountMinimal>> GetUserAccountByUsername(string username)
         {
@@ -83,10 +83,10 @@ namespace CommitteeCalendarAPI.Controllers
         [HttpPut("username/{username}")]
         public async Task<IActionResult> PutUserAccountByUsername(string username, [FromForm] UserAccountUpdate userAccountUpdate)
         {
-            //if (!await _authHelper.IsUserAdminAsync(User))
-            //{
-            //    return Content("Unauthorized: Admin permission required.");
-            //}
+            if (!await _authHelper.IsUserAdminAsync(User))
+            {
+                return Content("Unauthorized: Admin permission required.");
+            }
 
             var userAccount = await _context.UserAccounts
                 .FirstOrDefaultAsync(u => u.Username == username);
