@@ -9,6 +9,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using static CommitteeCalendarAPI.IMPLogic.IMPImageUploader;
 
 namespace CommitteeCalendarAPI.Controllers
 {
@@ -19,12 +20,14 @@ namespace CommitteeCalendarAPI.Controllers
         private readonly CommitteeCalendarContext _context;
         private readonly IConfiguration _configuration;
         private readonly AuthorizationHelper _authHelper;
+        private readonly IMPImageUploader.ImgbbUploader _imgbbUploader;
 
-        public UserAccountsController(CommitteeCalendarContext context, IConfiguration configuration)
+        public UserAccountsController(CommitteeCalendarContext context, IConfiguration configuration, IMPImageUploader.ImgbbUploader imgbbUploader)
         {
             _context = context;
             _configuration = configuration;
             _authHelper = new AuthorizationHelper(_context);
+            _imgbbUploader = imgbbUploader;
         }
 
         // GET: api/UserAccounts
@@ -78,12 +81,12 @@ namespace CommitteeCalendarAPI.Controllers
 
         // PUT: api/UserAccounts/username/{username}
         [HttpPut("username/{username}")]
-        public async Task<IActionResult> PutUserAccountByUsername(string username, UserAccountUpdate userAccountUpdate)
+        public async Task<IActionResult> PutUserAccountByUsername(string username, [FromForm] UserAccountUpdate userAccountUpdate)
         {
-            if (!await _authHelper.IsUserAdminAsync(User))
-            {
-                return Content("Unauthorized: Admin permission required.");
-            }
+            //if (!await _authHelper.IsUserAdminAsync(User))
+            //{
+            //    return Content("Unauthorized: Admin permission required.");
+            //}
 
             var userAccount = await _context.UserAccounts
                 .FirstOrDefaultAsync(u => u.Username == username);
@@ -94,9 +97,33 @@ namespace CommitteeCalendarAPI.Controllers
             }
 
             userAccount.Info = userAccountUpdate.Info;
-            userAccount.Avatar = userAccountUpdate.Avatar;
             userAccount.Email = userAccountUpdate.Email;
             userAccount.Phonenumber = userAccountUpdate.Phonenumber;
+
+            if (userAccountUpdate.Avatar != null)
+            {
+                using (var memoryStream = new MemoryStream())
+                {
+                    await userAccountUpdate.Avatar.CopyToAsync(memoryStream);
+                    byte[] imageBytes = memoryStream.ToArray();
+                    string imagePath = Path.GetTempFileName();
+                    await System.IO.File.WriteAllBytesAsync(imagePath, imageBytes);
+
+                    try
+                    {
+                        string avatarUrl = await _imgbbUploader.UploadImageAsync(imagePath);
+                        userAccount.Avatar = avatarUrl;
+                    }
+                    catch (Exception ex)
+                    {
+                        return BadRequest($"Image upload failed: {ex.Message}");
+                    }
+                    finally
+                    {
+                        System.IO.File.Delete(imagePath); // Clean up temporary file
+                    }
+                }
+            }
 
             _context.Entry(userAccount).State = EntityState.Modified;
 

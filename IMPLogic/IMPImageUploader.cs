@@ -1,4 +1,6 @@
-﻿namespace CommitteeCalendarAPI.IMPLogic
+﻿using Microsoft.Extensions.Options;
+
+namespace CommitteeCalendarAPI.IMPLogic
 {
     public class IMPImageUploader
     {
@@ -6,9 +8,9 @@
         {
             private readonly string apiKey;
 
-            public ImgbbUploader()
+            public ImgbbUploader(IOptions<ImgbbSettings> imgbbSettings)
             {
-                this.apiKey = "b96c41ab65e9abc60c06109f3115fc53";
+                this.apiKey = imgbbSettings.Value.ApiKey;
             }
 
             public async Task<string> UploadImageAsync(string imagePath)

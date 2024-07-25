@@ -1,3 +1,4 @@
+using CommitteeCalendarAPI.IMPLogic;
 using CommitteeCalendarAPI.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -15,6 +16,8 @@ builder.Services.AddSwaggerGen();
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<CommitteeCalendarContext>(options =>
     options.UseSqlServer(connectionString));
+builder.Services.Configure<ImgbbSettings>(builder.Configuration.GetSection("ImgbbSettings"));
+builder.Services.AddSingleton<IMPImageUploader.ImgbbUploader>();
 // JWT Authentication Configuration
 var key = Encoding.ASCII.GetBytes(builder.Configuration["Jwt:Key"]);
 builder.Services.AddAuthentication(options =>
